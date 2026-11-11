@@ -1,0 +1,227 @@
+// Lisan Al-Arabi Council — database schema. Business rules are documented in docs/ARCHITECTURE.md.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RecordStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ActivityStatus {
+  OPEN   // attendance follows the configured window
+  CLOSED // closed manually; rejects new attendance until reopened
+}
+
+enum InvitationStatus {
+  DRAFT      // record created, no message prepared yet
+  PREPARED   // message/QR prepared; NOT a claim that anything was delivered
+  SENT_CONFIRMED // an administrator manually confirmed having sent it
+  ATTENDED   // attendance recorded
+  CANCELLED  // revoked; QR no longer valid
+}
+
+enum DeliveryChannel {
+  WHATSAPP
+  EMAIL
+}
+
+enum AttendanceStatus {
+  VALID
+  VOIDED // corrected as erroneous; row kept as evidence
+}
+
+enum AttendanceMethod {
+  QR_SCAN
+  MANUAL
+}
+
+enum CorrectionAction {
+  VOID
+  RESTORE
+  MANUAL_ADD
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdBy Admin?  @relation("AdminCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  created   Admin[] @relation("AdminCreator")
+  sessions  Session[]
+  auditEvents AuditEvent[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  adminId   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([expiresAt])
+}
+
+model RateLimit {
+  key         String    @id
+  count       Int       @default(0)
+  windowStart DateTime  @default(now())
+  lockedUntil DateTime?
+}
+
+model Participant {
+  id              String       @id @default(cuid())
+  fullName        String
+  nameNormalized  String
+  phone           String?
+  phoneNormalized String?      @unique
+  email           String?
+  emailNormalized String?      @unique
+  status          RecordStatus @default(ACTIVE)
+  archivedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  invitations  Invitation[]
+  attendances  Attendance[]
+  recognitions Recognition[]
+
+  @@index([nameNormalized])
+  @@index([status])
+}
+
+model Activity {
+  id                  String         @id @default(cuid())
+  title               String
+  description         String?
+  startsAt            DateTime
+  endsAt              DateTime
+  location            String
+  capacity            Int?
+  attendanceOpensAt   DateTime
+  attendanceClosesAt  DateTime
+  status              ActivityStatus @default(OPEN)
+  closedAt            DateTime?
+  closedById          String?
+  createdById         String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  invitations Invitation[]
+  attendances Attendance[]
+
+  @@index([startsAt])
+  @@index([status])
+}
+
+model Invitation {
+  id               String           @id @default(cuid())
+  participantId    String
+  activityId       String
+  status           InvitationStatus @default(DRAFT)
+  channel          DeliveryChannel?
+  qrTokenHash      String           @unique
+  qrTokenVersion   Int              @default(1)
+  preparedAt       DateTime?
+  sentConfirmedAt  DateTime?
+  sentConfirmedById String?
+  resendCount      Int              @default(0)
+  cancelledAt      DateTime?
+  cancelledById    String?
+  cancelReason     String?
+  createdById      String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  participant Participant  @relation(fields: [participantId], references: [id], onDelete: Restrict)
+  activity    Activity     @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  attendance  Attendance?
+
+  @@unique([participantId, activityId])
+  @@index([activityId, status])
+  @@index([participantId])
+}
+
+model Attendance {
+  id            String           @id @default(cuid())
+  invitationId  String           @unique
+  activityId    String
+  participantId String
+  status        AttendanceStatus @default(VALID)
+  method        AttendanceMethod
+  recordedAt    DateTime         @default(now())
+  recordedById  String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  invitation  Invitation  @relation(fields: [invitationId], references: [id], onDelete: Restrict)
+  activity    Activity    @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Restrict)
+  corrections AttendanceCorrection[]
+
+  // The same participant can never be present twice for the same activity.
+  @@unique([activityId, participantId])
+  @@index([recordedAt])
+  @@index([participantId])
+}
+
+model AttendanceCorrection {
+  id             String           @id @default(cuid())
+  attendanceId   String
+  action         CorrectionAction
+  previousStatus AttendanceStatus?
+  newStatus      AttendanceStatus
+  reason         String
+  adminId        String
+  createdAt      DateTime         @default(now())
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Restrict)
+
+  @@index([attendanceId])
+}
+
+model Recognition {
+  id            String   @id @default(cuid())
+  participantId String
+  type          String
+  awardedOn     DateTime
+  reason        String
+  notes         String?
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Restrict)
+
+  @@index([participantId])
+  @@index([awardedOn])
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  adminId    String?
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  admin Admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+  @@index([adminId])
+}
