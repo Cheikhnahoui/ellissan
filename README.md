@@ -1,4 +1,4 @@
-# مجلس لسان العربي — Lisan Al-Arabi Council Management System
+# مجلس اللسان العربي — Lisan Al-Arabi Council Management System
 
 Next.js (App Router) · TypeScript strict · Prisma 7 · PostgreSQL.
 

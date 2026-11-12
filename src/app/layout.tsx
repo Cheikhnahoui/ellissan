@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "مجلس لسان العربي", template: "%s | مجلس لسان العربي" },
-  description: "منصة إدارة أنشطة مجلس لسان العربي ومشاركيه",
+  title: { default: "مجلس اللسان العربي", template: "%s | مجلس اللسان العربي" },
+  description: "منصة إدارة أنشطة مجلس اللسان العربي ومشاركيه",
   robots: { index: false, follow: false },
 };
 

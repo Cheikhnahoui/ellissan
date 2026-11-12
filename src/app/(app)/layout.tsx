@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[16rem_1fr]">
       <aside className="border-line bg-surface p-3 lg:sticky lg:top-0 lg:h-screen lg:border-e lg:p-4">
-        <p className="mb-3 px-3 text-lg font-semibold text-brand">مجلس لسان العربي</p>
+        <p className="mb-3 px-3 text-lg font-semibold text-brand">مجلس اللسان العربي</p>
         <Nav />
       </aside>
       <div className="min-w-0">

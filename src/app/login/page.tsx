@@ -12,7 +12,7 @@ export default async function LoginPage() {
     <main className="grid min-h-screen place-items-center p-4">
       <Card className="w-full max-w-sm space-y-5">
         <div>
-          <h1 className="text-xl font-semibold text-brand">مجلس لسان العربي</h1>
+          <h1 className="text-xl font-semibold text-brand">مجلس اللسان العربي</h1>
           <p className="mt-1 text-sm text-muted">تسجيل دخول المشرفين. الحسابات تُنشأ من قبل مشرف فقط.</p>
         </div>
         <LoginForm />
