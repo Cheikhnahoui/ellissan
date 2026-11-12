@@ -17,6 +17,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   headers: async () => [{ source: "/:path*", headers: securityHeaders }],
+  turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } },
   serverExternalPackages: ["@node-rs/argon2", "exceljs"],
 };
 
