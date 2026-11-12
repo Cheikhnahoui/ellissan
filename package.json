@@ -13,7 +13,8 @@
     "format:check": "prettier --check .",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "admin:create": "tsx scripts/create-admin.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.6",
